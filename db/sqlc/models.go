@@ -10,10 +10,13 @@ import (
 )
 
 type Room struct {
-	RoomID int64    `json:"room_id"`
-	Member []string `json:"member"`
-	Date   int32    `json:"date"`
-	Time   int32    `json:"time"`
+	RoomID      int64     `json:"room_id"`
+	Source      string    `json:"source"`
+	Destination string    `json:"destination"`
+	Member      []string  `json:"member"`
+	Date        time.Time `json:"date"`
+	Time        time.Time `json:"time"`
+	IsFull      bool      `json:"is_full"`
 }
 
 type User struct {
