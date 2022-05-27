@@ -9,9 +9,12 @@ CREATE TABLE "users" (
 
 CREATE TABLE "room" (
   "room_id" bigserial PRIMARY KEY,
-  "member" varchar[],
-  "date" int NOT NULL,
-  "time" int NOT NULL
+  "source" varchar NOT NULL,
+  "destination" varchar NOT NULL,
+  "member" varchar[] DEFAULT '{}',
+  "date" date NOT NULL,
+  "time" time NOT NULL,
+  "is_full" boolean NOT NULL DEFAULT false
 );
 
 CREATE INDEX ON "users" ("name");
