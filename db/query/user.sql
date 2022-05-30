@@ -19,9 +19,7 @@ FOR NO KEY UPDATE;
 
 -- name: GetUsers :many
 SELECT * FROM users
-ORDER BY id
-LIMIT $1
-OFFSET $2;
+ORDER BY created_at;
 
 -- name: EnterRoom :one
 UPDATE users
