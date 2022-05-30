@@ -107,6 +107,41 @@ func (q *Queries) GetRoom(ctx context.Context, roomID int64) (Room, error) {
 	return i, err
 }
 
+const getRooms = `-- name: GetRooms :many
+SELECT room_id, source, destination, member, date, time, is_full FROM room
+`
+
+func (q *Queries) GetRooms(ctx context.Context) ([]Room, error) {
+	rows, err := q.db.QueryContext(ctx, getRooms)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Room{}
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(
+			&i.RoomID,
+			&i.Source,
+			&i.Destination,
+			pq.Array(&i.Member),
+			&i.Date,
+			&i.Time,
+			&i.IsFull,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTodayRoom = `-- name: ListTodayRoom :many
 SELECT room_id, source, destination, member, date, time, is_full FROM room
 WHERE date = CURRENT_DATE

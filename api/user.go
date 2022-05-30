@@ -10,10 +10,10 @@ import (
 
 // Create User
 type createUserReq struct {
-	ID     string
-	Name   string
-	Email  string
-	Gender string
+	ID     string `json:"id" validate:"required"`
+	Name   string `json:"name" validate:"required"`
+	Email  string `json:"email" validate:"required,email"`
+	Gender string `json:"gender" validate:"required,oneof=male female"`
 }
 
 func (server *Server) createUser(ctx *fiber.Ctx) error {
@@ -81,7 +81,7 @@ func (server *Server) getUsers(ctx *fiber.Ctx) error {
 }
 
 // Modify User
-func (server *Server) patchUser()
+func (server *Server) patchUser() {}
 
 func (server *Server) deleteUser(ctx *fiber.Ctx) error {
 	idReq := ctx.Params("id")

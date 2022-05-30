@@ -12,6 +12,9 @@ INSERT INTO room (
 SELECT * FROM room
 WHERE room_id = $1 LIMIT 1;
 
+-- name: GetRooms :many
+SELECT * FROM room;
+
 -- name: ListTodayRoom :many
 SELECT * FROM room
 WHERE date = CURRENT_DATE;
