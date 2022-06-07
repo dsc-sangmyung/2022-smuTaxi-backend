@@ -66,7 +66,7 @@ RETURNING id, name, email, gender, created_at, room_id
 
 type EnterRoomParams struct {
 	ID     string        `json:"id"`
-	RoomID sql.NullInt32 `json:"room_id"`
+	RoomID sql.NullInt64 `json:"room_id"`
 }
 
 func (q *Queries) EnterRoom(ctx context.Context, arg EnterRoomParams) (User, error) {

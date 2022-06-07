@@ -31,6 +31,7 @@ func NewServer(store *db.Store) *Server {
 	router.Get("/rooms", server.getAllRooms)
 	router.Get("/rooms/:id", server.getRoom)
 	router.Patch("/rooms/:id", server.addMember)
+	router.Post("/rooms/:roomID", server.EnterRoom)
 	router.Post("/rooms", server.createRoom)
 
 	server.router = router
