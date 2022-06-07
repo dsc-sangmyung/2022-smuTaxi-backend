@@ -4,7 +4,7 @@ CREATE TABLE "users" (
   "email" varchar NOT NULL,
   "gender" varchar NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now()),
-  "room_id" int
+  "room_id" bigint
 );
 
 CREATE TABLE "room" (

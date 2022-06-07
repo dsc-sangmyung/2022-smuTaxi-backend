@@ -25,5 +25,5 @@ type User struct {
 	Email     string        `json:"email"`
 	Gender    string        `json:"gender"`
 	CreatedAt time.Time     `json:"created_at"`
-	RoomID    sql.NullInt32 `json:"room_id"`
+	RoomID    sql.NullInt64 `json:"room_id"`
 }
