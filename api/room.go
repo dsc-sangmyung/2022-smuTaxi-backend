@@ -12,10 +12,10 @@ import (
 
 // Create Room
 type createRoomReq struct {
-	Source      string    `json:"source" validate:"required"`
-	Destination string    `json:"destination" validate:"required"`
-	Date        time.Time `json:"date" validate:"required"`
-	Time        time.Time `json:"time" validate:"required"`
+	Source      string `json:"source" validate:"required"`
+	Destination string `json:"destination" validate:"required"`
+	Date        string `json:"date" validate:"required"`
+	Time        string `json:"time" validate:"required"`
 }
 
 func (server *Server) createRoom(ctx *fiber.Ctx) error {
@@ -30,11 +30,14 @@ func (server *Server) createRoom(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
 	}
 
+	stringToDate, _ := time.Parse("2006-01-02", req.Date)
+	stringToTime, _ := time.Parse("15:04", req.Time)
+
 	arg := db.CreateRoomParams{
 		Source:      req.Source,
 		Destination: req.Destination,
-		Date:        req.Date,
-		Time:        req.Time,
+		Date:        stringToDate,
+		Time:        stringToTime,
 	}
 
 	room, err := server.store.CreateRoom(ctx.Context(), arg)

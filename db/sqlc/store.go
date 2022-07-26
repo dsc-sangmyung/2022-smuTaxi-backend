@@ -52,8 +52,24 @@ func (store *Store) EnterRoomTx(ctx context.Context, arg EnterRoomTxParams) (Ent
 		var err error
 
 		// 0. User가 현재 들어가있는 방이 없는지 체크한다.
+		result.User, err = q.GetUser(ctx, arg.UserID)
+		if result.User.RoomID.Valid {
+			return fmt.Errorf("user is already in room")
+		}
+		if err != nil {
+			return err
+		}
+
+		// 1. Room이 존재하는지 체크한다.
+		result.Room, err = q.GetRoom(ctx, arg.RoomID.Int64)
+		if err != nil {
+			return err
+		}
 
 		// 1. room_id의 인원이 4명인지 체크한다. 4명이면 거부.
+		if len(result.Room.Member) == 4 {
+			return fmt.Errorf("room is full")
+		}
 
 		// 2. 4명이 아니라면 유저의 room_id값을 갱신해줌.
 		result.User, err = store.EnterRoom(ctx, EnterRoomParams{

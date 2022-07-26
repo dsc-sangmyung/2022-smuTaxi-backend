@@ -5,18 +5,24 @@ import (
 	db "smutaxi/db/sqlc"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type EnterRoomReq struct {
-	UserID string
-	RoomID int64
+	UserID string `json:"user_id" validate:"required"`
+	RoomID int64  `json:"room_id" validate:"required"`
 }
 
 func (server *Server) EnterRoom(ctx *fiber.Ctx) error {
 	req := new(EnterRoomReq)
 
 	if err := ctx.BodyParser(req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
 	}
 
@@ -29,6 +35,7 @@ func (server *Server) EnterRoom(ctx *fiber.Ctx) error {
 		UserID: req.UserID,
 		RoomID: sql.NullInt64{
 			Int64: roomID,
+			Valid: true,
 		},
 	}
 
