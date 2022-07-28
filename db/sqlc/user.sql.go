@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/lib/pq"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -18,7 +20,7 @@ INSERT INTO users (
     gender
 ) VALUES (
     $1, $2, $3, $4
-) RETURNING id, name, email, gender, created_at, room_id
+) RETURNING id, name, email, gender, item, created_at, room_id
 `
 
 type CreateUserParams struct {
@@ -41,6 +43,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Email,
 		&i.Gender,
+		pq.Array(&i.Item),
 		&i.CreatedAt,
 		&i.RoomID,
 	)
@@ -61,7 +64,7 @@ const enterRoom = `-- name: EnterRoom :one
 UPDATE users
 SET room_id = $2
 WHERE id = $1
-RETURNING id, name, email, gender, created_at, room_id
+RETURNING id, name, email, gender, item, created_at, room_id
 `
 
 type EnterRoomParams struct {
@@ -77,14 +80,33 @@ func (q *Queries) EnterRoom(ctx context.Context, arg EnterRoomParams) (User, err
 		&i.Name,
 		&i.Email,
 		&i.Gender,
+		pq.Array(&i.Item),
 		&i.CreatedAt,
 		&i.RoomID,
 	)
 	return i, err
 }
 
+const findUser = `-- name: FindUser :one
+SELECT name, gender, item FROM users
+WHERE id = $1 LIMIT 1
+`
+
+type FindUserRow struct {
+	Name   string   `json:"name"`
+	Gender string   `json:"gender"`
+	Item   []string `json:"item"`
+}
+
+func (q *Queries) FindUser(ctx context.Context, id string) (FindUserRow, error) {
+	row := q.db.QueryRowContext(ctx, findUser, id)
+	var i FindUserRow
+	err := row.Scan(&i.Name, &i.Gender, pq.Array(&i.Item))
+	return i, err
+}
+
 const gerUserForUpdate = `-- name: GerUserForUpdate :one
-SELECT id, name, email, gender, created_at, room_id FROM users
+SELECT id, name, email, gender, item, created_at, room_id FROM users
 WHERE id = $1 LIMIT 1
 FOR NO KEY UPDATE
 `
@@ -97,14 +119,27 @@ func (q *Queries) GerUserForUpdate(ctx context.Context, id string) (User, error)
 		&i.Name,
 		&i.Email,
 		&i.Gender,
+		pq.Array(&i.Item),
 		&i.CreatedAt,
 		&i.RoomID,
 	)
 	return i, err
 }
 
+const getItems = `-- name: GetItems :one
+SELECT item from users
+WHERE id = $1
+`
+
+func (q *Queries) GetItems(ctx context.Context, id string) ([]string, error) {
+	row := q.db.QueryRowContext(ctx, getItems, id)
+	var item []string
+	err := row.Scan(pq.Array(&item))
+	return item, err
+}
+
 const getUser = `-- name: GetUser :one
-SELECT id, name, email, gender, created_at, room_id FROM users
+SELECT id, name, email, gender, item, created_at, room_id FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -116,6 +151,7 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Gender,
+		pq.Array(&i.Item),
 		&i.CreatedAt,
 		&i.RoomID,
 	)
@@ -123,7 +159,7 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, name, email, gender, created_at, room_id FROM users
+SELECT id, name, email, gender, item, created_at, room_id FROM users
 ORDER BY created_at
 `
 
@@ -141,6 +177,7 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.Email,
 			&i.Gender,
+			pq.Array(&i.Item),
 			&i.CreatedAt,
 			&i.RoomID,
 		); err != nil {
@@ -157,23 +194,29 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const quitRoom = `-- name: QuitRoom :one
+const quitRoom = `-- name: QuitRoom :exec
 UPDATE users
 SET room_id = NULL
 WHERE id = $1
-RETURNING id, name, email, gender, created_at, room_id
 `
 
-func (q *Queries) QuitRoom(ctx context.Context, id string) (User, error) {
-	row := q.db.QueryRowContext(ctx, quitRoom, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Gender,
-		&i.CreatedAt,
-		&i.RoomID,
-	)
-	return i, err
+func (q *Queries) QuitRoom(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, quitRoom, id)
+	return err
+}
+
+const setItems = `-- name: SetItems :exec
+UPDATE users
+SET item = $2
+WHERE id = $1
+`
+
+type SetItemsParams struct {
+	ID   string   `json:"id"`
+	Item []string `json:"item"`
+}
+
+func (q *Queries) SetItems(ctx context.Context, arg SetItemsParams) error {
+	_, err := q.db.ExecContext(ctx, setItems, arg.ID, pq.Array(arg.Item))
+	return err
 }

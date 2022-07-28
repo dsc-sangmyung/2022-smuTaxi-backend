@@ -3,6 +3,7 @@ CREATE TABLE "users" (
   "name" varchar NOT NULL,
   "email" varchar NOT NULL,
   "gender" varchar NOT NULL,
+  "item" varchar[] DEFAULT '{}',
   "created_at" timestamptz NOT NULL DEFAULT (now()),
   "room_id" bigint
 );

@@ -39,11 +39,48 @@ func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
 type EnterRoomTxParams struct {
 	UserID string
 	RoomID sql.NullInt64
+	Item   []string
 }
 
 type EnterRoomTxResult struct {
 	User User
 	Room Room
+}
+
+type QuitRoomTxParams struct {
+	UserID string
+	RoomID sql.NullInt64
+}
+
+type QuitRoomTxResult struct {
+	User User
+	Room Room
+}
+
+func (store *Store) QuitRoomTx(ctx context.Context, arg QuitRoomTxParams) (QuitRoomTxResult, error) {
+	var result QuitRoomTxResult
+	err := store.execTx(ctx, func(q *Queries) error {
+		var err error
+
+		// 0. User의 Roomid 초기화
+		err = q.QuitRoom(ctx, arg.UserID)
+		if err != nil {
+			return err
+		}
+
+		// 1. Room의 member에서 User 삭제
+		err = q.RemoveMember(ctx, RemoveMemberParams{
+			RoomID:      arg.RoomID.Int64,
+			ArrayRemove: arg.UserID,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		return err
+	})
+	return result, err
 }
 
 func (store *Store) EnterRoomTx(ctx context.Context, arg EnterRoomTxParams) (EnterRoomTxResult, error) {
@@ -70,8 +107,13 @@ func (store *Store) EnterRoomTx(ctx context.Context, arg EnterRoomTxParams) (Ent
 		if len(result.Room.Member) == 4 {
 			return fmt.Errorf("room is full")
 		}
+		// 2. user의 item 정보를 갱신해줌.
+		store.SetItems(ctx, SetItemsParams{
+			ID:   arg.UserID,
+			Item: arg.Item,
+		})
 
-		// 2. 4명이 아니라면 유저의 room_id값을 갱신해줌.
+		// 3. 4명이 아니라면 유저의 room_id값을 갱신해줌.
 		result.User, err = store.EnterRoom(ctx, EnterRoomParams{
 			ID:     arg.UserID,
 			RoomID: arg.RoomID,
@@ -79,7 +121,8 @@ func (store *Store) EnterRoomTx(ctx context.Context, arg EnterRoomTxParams) (Ent
 		if err != nil {
 			return err
 		}
-		// 3. room_id에 해당하는 room의 member에 user를 추가.
+
+		// 4. room_id에 해당하는 room의 member에 user를 추가.
 		result.Room, err = store.AddMember(ctx, AddMemberParams{
 			RoomID:      arg.RoomID.Int64,
 			ArrayAppend: arg.UserID,

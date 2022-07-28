@@ -87,6 +87,54 @@ func (q *Queries) DeleteRoom(ctx context.Context, roomID int64) error {
 	return err
 }
 
+const findRooms = `-- name: FindRooms :many
+SELECT room_id, source, destination, member, date, time, is_full FROM room
+WHERE source = $1 AND destination = $2 AND date = $3 AND time = $4
+`
+
+type FindRoomsParams struct {
+	Source      string    `json:"source"`
+	Destination string    `json:"destination"`
+	Date        time.Time `json:"date"`
+	Time        time.Time `json:"time"`
+}
+
+func (q *Queries) FindRooms(ctx context.Context, arg FindRoomsParams) ([]Room, error) {
+	rows, err := q.db.QueryContext(ctx, findRooms,
+		arg.Source,
+		arg.Destination,
+		arg.Date,
+		arg.Time,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Room{}
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(
+			&i.RoomID,
+			&i.Source,
+			&i.Destination,
+			pq.Array(&i.Member),
+			&i.Date,
+			&i.Time,
+			&i.IsFull,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRoom = `-- name: GetRoom :one
 SELECT room_id, source, destination, member, date, time, is_full FROM room
 WHERE room_id = $1 LIMIT 1
@@ -176,4 +224,20 @@ func (q *Queries) ListTodayRoom(ctx context.Context) ([]Room, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeMember = `-- name: RemoveMember :exec
+UPDATE room
+SET member = array_remove(member, $2)
+WHERE room_id = $1
+`
+
+type RemoveMemberParams struct {
+	RoomID      int64       `json:"room_id"`
+	ArrayRemove interface{} `json:"array_remove"`
+}
+
+func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) error {
+	_, err := q.db.ExecContext(ctx, removeMember, arg.RoomID, arg.ArrayRemove)
+	return err
 }

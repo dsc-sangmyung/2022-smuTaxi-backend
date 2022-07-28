@@ -83,6 +83,38 @@ func (server *Server) getUsers(ctx *fiber.Ctx) error {
 // Modify User
 func (server *Server) patchUser() {}
 
+type setItemReq struct {
+	Item []string `json:"item" validate:"required"`
+}
+
+func (server *Server) setItem(ctx *fiber.Ctx) error {
+	req := new(setItemReq)
+
+	if err := ctx.BodyParser(req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errorResponse(err))
+	}
+
+	arg := db.SetItemsParams{
+		ID:   ctx.Params("id"),
+		Item: req.Item,
+	}
+
+	err := server.store.SetItems(ctx.Context(), arg)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(errorResponse(err))
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "set item successful.",
+	})
+
+}
+
 func (server *Server) deleteUser(ctx *fiber.Ctx) error {
 	idReq := ctx.Params("id")
 	if idReq == "" {

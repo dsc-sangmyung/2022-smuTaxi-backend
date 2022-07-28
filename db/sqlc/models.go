@@ -24,6 +24,7 @@ type User struct {
 	Name      string        `json:"name"`
 	Email     string        `json:"email"`
 	Gender    string        `json:"gender"`
+	Item      []string      `json:"item"`
 	CreatedAt time.Time     `json:"created_at"`
 	RoomID    sql.NullInt64 `json:"room_id"`
 }
